@@ -17,15 +17,15 @@ default: $(EXECS)
 
 dsmexec: dsmexec.o common.o
 	$(CLINKER) $(OPTFLAGS) -o dsmexec dsmexec.o  common.o $(LIBS)
-	mv dsmexec ./bin
+	mv dsmexec bin
 	
 dsmwrap: dsmwrap.o common.o
 	$(CLINKER) $(OPTFLAGS) -o dsmwrap dsmwrap.o  common.o $(LIBS)
-	mv dsmwrap ./bin
+	mv dsmwrap bin
 		
 truc: truc.o 
 	$(CLINKER) $(OPTFLAGS) -o truc truc.o common.o $(LIBS)	
-	mv truc ./bin
+	mv truc bin
 	
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core 
