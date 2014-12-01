@@ -130,6 +130,8 @@ int main(int argc, char *argv[])
 					}
 				}
 
+				memset(array, 0 , 1024);
+
 				array[0] = buffer;
 				array[1] = "-oStrictHostKeyChecking=no";
 				array[2] = "~/ShareMem/Phase1/truc";
