@@ -1,3 +1,4 @@
+all: default
 ALL: default 
 
 CC           = gcc

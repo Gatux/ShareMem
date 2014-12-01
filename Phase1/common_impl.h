@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -7,6 +8,15 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <poll.h>
+#include <sys/time.h>
+
+#include <unistd.h>
+
+#define _GNU_SOURCE             /* See feature_test_macros(7) */
+#include <fcntl.h>              /* Obtain O_* constant definitions */
+
 
 /* autres includes (eventuellement) */
 

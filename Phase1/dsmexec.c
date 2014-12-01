@@ -27,25 +27,39 @@ int main(int argc, char *argv[])
 {
 	if (argc < 3){
 		usage();
-	} else {       
+	} else {
+
 		pid_t pid;
-		struct sigaction siga;
+
 		int num_procs = 0;
-		int i = 0, ret;
+
+		struct sigaction siga;
+
 		FILE* f;
-		char* array[1024];
-		int** pipe_out;
-		int** pipe_err;
-		fd_set readfs;
+
+		char buffer[1024]; // Buffer pour lire un fichier et les pipes
+		char* array[1024]; // Pour enregistrer les noms de machines
 		char* line = NULL;
+
+		int i = 0; // int pour les boucles for
+
+		int DSM_NODE_ID;
+
+		// Pour le poll
+		struct pollfd* fds;
+
+		int* pipe_out; // Tableau de fd de pipe
+		int* pipe_err; // Tableau de fd de pipe
+		int fd_out[2];
+		int fd_err[2];
+
 		size_t len;
 		ssize_t size;
-		char buffer[1024];
 
-		FD_ZERO(&readfs);
-
-		/* Mise en place d'un traitant pour recuperer les fils zombies*/      
+		/* Mise en place d'un traitant pour recuperer les fils zombies*/
+		memset(&siga, 0, sizeof(struct sigaction));
 		siga.sa_handler = sigchld_handler;
+		//sigaction(10, &siga, NULL);
 	
 
 		/* lecture du fichier de machines */
@@ -74,8 +88,8 @@ int main(int argc, char *argv[])
 
 		num_procs = i;
 
-		pipe_out = malloc(num_procs*sizeof(int*));
-		pipe_err = malloc(num_procs*sizeof(int*));
+		pipe_out = malloc(num_procs*sizeof(int));
+		pipe_err = malloc(num_procs*sizeof(int));
 		 
 		/* creation de la socket d'ecoute */
 		/* + ecoute effective */ 
@@ -83,50 +97,75 @@ int main(int argc, char *argv[])
 		/* creation des fils */
 		for(i = 0; i < num_procs ; i++) {
 	
-			pipe_out[i] = malloc(2*sizeof(int));
-			pipe_err[i] = malloc(2*sizeof(int));
-
 			/* creation du tube pour rediriger stdout */
-			pipe(pipe_out[i]);
+			pipe(fd_out);
 
 			/* creation du tube pour rediriger stderr */
-			pipe(pipe_err[i]);
+			pipe(fd_err);
 			
 			pid = fork();
-			if(pid == -1) ERROR_EXIT("fork");
-			
-			if (pid == 0) { /* fils */	 
+			if(pid == -1) {
+				ERROR_EXIT("fork");
+			}
+			else if (pid == 0) {
+				// FILS
+
 				/* redirection stdout */	      
-				dup2(pipe_out[i][1], 1);
+				dup2(fd_out[1], 1);
 
 				/* redirection stderr */	      	      
-				dup2(pipe_err[i][1], 2);
+				dup2(fd_err[1], 2);
 				 
-				close(pipe_out[i][0]);
-				close(pipe_err[i][0]);
+				close(fd_out[0]);
+				close(fd_out[0]);
 				
-				/* Creation du tableau d'arguments pour le ssh */ 
-				
-				while(1)
-					write(1, "Coucou\n", 8);
-				exit(0);
+				/* Creation du tableau d'arguments pour le ssh */
+				memset(buffer, 0, 1024);
+				strcpy(buffer, array[i]); // Buffer prend le nom de la machine
+				DSM_NODE_ID = i;
+				for(i = 0; i < DSM_NODE_ID; i++) {
+					if(array[i] != NULL) {
+						free(array[i]);
+						array[i] = NULL;
+					}
+				}
+
+				array[0] = buffer;
+				array[1] = "-oStrictHostKeyChecking=no";
+				array[2] = "~/ShareMem/Phase1/truc";
 
 				/* jump to new prog : */
-				/* execvp("ssh",newargv); */
+				execvp("ssh",array);
 
-			} else  if(pid > 0) { /* pere */		      
-				/* fermeture des extremites des tubes non utiles */
-				close(pipe_out[i][1]);
-				close(pipe_err[i][1]);
-		
-				FD_SET(pipe_out[i][0], &readfs);
-				FD_SET(pipe_err[i][0], &readfs);
+			}
+			else  if(pid > 0) {
+				// PERE
+
+				pipe_out[i] = fd_out[0];
+
+				pipe_err[i] = fd_err[0];
+
+				close(fd_out[1]);
+				close(fd_out[1]);
 
 				num_procs_creat++;	      
 			}
 		 }
-		 
-	 
+
+
+		fds = malloc(2*num_procs_creat * sizeof(*fds));
+
+		for(i = 0; i < 2*num_procs_creat; i++) {
+			if(i < num_procs_creat) {
+				fds[i].fd = pipe_out[i];
+				fds[i].events = POLLIN;
+			}
+			else {
+				fds[i].fd = pipe_err[i-num_procs_creat];
+				fds[i].events = POLLIN;
+			}
+		}
+
 		 for(i = 0; i < num_procs ; i++){
 	
 	/* on accepte les connexions des processus dsm */
@@ -160,34 +199,28 @@ int main(int argc, char *argv[])
 
 		while(1)
 		{
-			if( (ret = select(pipe_err[num_procs_creat-1][0]+1, &readfs, NULL, NULL, NULL)) < 0 )
-			{
+		    /* Checks if there is data waiting in stdin */
+		    poll(fds, 2*num_procs_creat, -1);
 
-			}
-			else if(ret)
+			for(i=0; i<num_procs_creat; i++)
 			{
-				for(i=0; i<num_procs; i++)
+			    if(fds[i].revents == POLLIN)
 				{
-					if(FD_ISSET(pipe_out[i][0], &readfs))
-					{
-						memset(buffer, 0, sizeof(char)*1024);
-						recv(pipe_out[i][0], buffer, sizeof(char)*1024, 0);
-						printf("[Proc %d : toto : stdout] %s !\n", i, buffer);
-					}
-					//FD_ZERO(&readfs);
-					//FD_SET(pipe_out[i][0], &readfs);
+			    	memset(buffer, 0, sizeof(char)*1024);
+					read(pipe_out[i], buffer, sizeof(char)*1024);
+					printf("[Proc %d : toto : stdout] %s", i, buffer);
+					fflush(stdout);
 				}
+			}
 
-				for(i=0; i<num_procs; i++)
+			for(i=num_procs_creat; i<2*num_procs_creat; i++)
+			{
+				if(fds[i].revents == POLLIN)
 				{
-					if(FD_ISSET(pipe_err[i][0], &readfs))
-					{
-						memset(buffer, 0, sizeof(char)*1024);
-						recv(pipe_err[i][0], buffer, sizeof(char)*1024, 0);
-						printf("[Proc %d : toto : stderr] %s !\n", i, buffer);
-					}
-					//FD_ZERO(&readfs);
-					//FD_ISSET(pipe_err[i][0], &readfs);
+					memset(buffer, 0, sizeof(char)*1024);
+					read(pipe_err[i-num_procs_creat], buffer, sizeof(char)*1024);
+					printf("[Proc %d : toto : stderr] %s", i, buffer);
+					fflush(stdout);
 				}
 			}
 		}
