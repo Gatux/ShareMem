@@ -2,10 +2,14 @@
 
 int main(int argc, char **argv)
 {   
-   /* processus intermediaire pour "nettoyer" */
-   /* la liste des arguments qu'on va passer */
-   /* a la commande a executer vraiment */
+	/* processus intermediaire pour "nettoyer" */
+	/* la liste des arguments qu'on va passer */
+	/* a la commande a executer vraiment */
    
+	char* array[1024];
+
+	int i;
+
    /* creation d'une socket pour se connecter au */
    /* au lanceur et envoyer/recevoir les infos */
    /* necessaires pour la phase dsm_init */   
@@ -22,5 +26,11 @@ int main(int argc, char **argv)
    /* processus dsm */
 
    /* on execute la bonne commande */
+	memset(array, 0, 1024);
+
+	for(i = 1; i < argc; i++)
+		array[i-1] = argv[i];
+
+	execvp(array[0], array);
    return 0;
 }

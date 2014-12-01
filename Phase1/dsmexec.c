@@ -132,9 +132,12 @@ int main(int argc, char *argv[])
 
 				memset(array, 0 , 1024);
 
-				array[0] = buffer;
-				array[1] = "-oStrictHostKeyChecking=no";
-				array[2] = "~/ShareMem/Phase1/truc";
+				array[0] = "ssh";
+				array[1] = buffer;
+				array[2] = "-oStrictHostKeyChecking=no";
+				array[3] = "~/ShareMem/Phase1/bin/dsmwrap"
+				for(i = 2; i < argc; i++)
+					array[i+2] = argv[i];
 
 				/* jump to new prog : */
 				execvp("ssh",array);
@@ -221,7 +224,7 @@ int main(int argc, char *argv[])
 				{
 					memset(buffer, 0, sizeof(char)*1024);
 					read(pipe_err[i-num_procs_creat], buffer, sizeof(char)*1024);
-					printf("[Proc %d : toto : stderr] %s", i, buffer);
+					printf("[Proc %d : toto : stderr] %s", i-num_procs_creat, buffer);
 					fflush(stdout);
 				}
 			}
