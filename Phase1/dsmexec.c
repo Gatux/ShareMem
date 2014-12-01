@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 				array[0] = "ssh";
 				array[1] = buffer;
 				array[2] = "-oStrictHostKeyChecking=no";
-				array[3] = "~/ShareMem/Phase1/bin/dsmwrap"
+				array[3] = "~/ShareMem/Phase1/bin/dsmwrap";
 				for(i = 2; i < argc; i++)
 					array[i+2] = argv[i];
 
