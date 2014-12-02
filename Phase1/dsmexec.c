@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 		while( (size = getline(&line, &len, f)) != -1 )
 		{
 			array[i] = malloc(len*sizeof(char)+1);
-			strcpy(array[i], line);
+			memcpy(array[i], line, strlen(line)-1);
 			i++;
 		}
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 					array[i+2] = argv[i];
 
 				/* jump to new prog : */
-				execvp("ssh",array);
+				execvp(array[0], array);
 
 			}
 			else  if(pid > 0) {
