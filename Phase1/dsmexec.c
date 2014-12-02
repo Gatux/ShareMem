@@ -38,6 +38,8 @@ int main(int argc, char *argv[])
 		FILE* f;
 
 		char buffer[1024]; // Buffer pour lire un fichier et les pipes
+		char buffer2[256]; // Buffer pour l'id
+		char buffer3[10]; // Buffer pour le port
 		char* array[1024]; // Pour enregistrer les noms de machines
 		char* line = NULL;
 
@@ -55,6 +57,15 @@ int main(int argc, char *argv[])
 
 		size_t len;
 		ssize_t size;
+
+		int port;
+		int sock;
+		int client;
+		socklen_t s_len;
+
+		struct sockaddr_in client_addr_in;
+
+		int* clients;
 
 		/* Mise en place d'un traitant pour recuperer les fils zombies*/
 		memset(&siga, 0, sizeof(struct sigaction));
@@ -82,7 +93,10 @@ int main(int argc, char *argv[])
 		while( (size = getline(&line, &len, f)) != -1 )
 		{
 			array[i] = malloc(len*sizeof(char)+1);
-			memcpy(array[i], line, strlen(line)-1);
+			if(line[strlen(line)-1] == '\n')
+				memcpy(array[i], line, strlen(line)-1);
+			else
+				memcpy(array[i], line, strlen(line));
 			i++;
 		}
 
@@ -93,6 +107,8 @@ int main(int argc, char *argv[])
 		 
 		/* creation de la socket d'ecoute */
 		/* + ecoute effective */ 
+		sock = creer_socket(SOCK_STREAM, &port);
+		listen(sock, num_procs);
 		
 		/* creation des fils */
 		for(i = 0; i < num_procs ; i++) {
@@ -136,8 +152,13 @@ int main(int argc, char *argv[])
 				array[1] = buffer;
 				array[2] = "-oStrictHostKeyChecking=no";
 				array[3] = "~/ShareMem/Phase1/bin/dsmwrap";
+				sprintf(buffer2, "%d", i);
+				array[4] = buffer2;
+				array[5] = getenv("HOSTNAME");
+				sprintf(buffer3, "%d", port);
+				array[6] = buffer3;
 				for(i = 2; i < argc; i++)
-					array[i+2] = argv[i];
+					array[i+5] = argv[i];
 
 				/* jump to new prog : */
 				execvp(array[0], array);
@@ -151,7 +172,7 @@ int main(int argc, char *argv[])
 				pipe_err[i] = fd_err[0];
 
 				close(fd_out[1]);
-				close(fd_out[1]);
+				close(fd_err[1]);
 
 				num_procs_creat++;	      
 			}
@@ -173,16 +194,21 @@ int main(int argc, char *argv[])
 
 		 for(i = 0; i < num_procs ; i++){
 	
-	/* on accepte les connexions des processus dsm */
-	
-	/*  On recupere le nom de la machine distante */
-	/* 1- d'abord la taille de la chaine */
-	/* 2- puis la chaine elle-meme */
-	
-	/* On recupere le pid du processus distant  */
-	
-	/* On recupere le numero de port de la socket */
-	/* d'ecoute des processus distants */
+			 /* on accepte les connexions des processus dsm */
+			 len = sizeof(struct sockaddr);
+			 client = accept(sock, (struct sockaddr*) &client_addr_in, &s_len);
+
+			 read(client, buffer, 1024);
+
+			 atoi(buffer);
+
+
+			 /*  On recupere le nom de la machine distante */
+			 /* 1- d'abord la taille de la chaine */
+			 /* 2- puis la chaine elle-meme */
+
+			 /* On recupere le numero de port de la socket */
+			 /* d'ecoute des processus distants */
 		 }
 		 
 		 /* envoi du nombre de processus aux processus dsm*/
