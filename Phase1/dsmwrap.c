@@ -32,7 +32,7 @@ int main(int argc, char **argv)
    
 	/* Envoie de DSM_NODE_ID */
 	memset(buffer, 0, 1024);
-	sprintf("%d\n", DSM_NODE_ID);
+	sprintf(buffer, "%d\n", DSM_NODE_ID);
 	write(sock, buffer, strlen(buffer));
 
    /* Envoi du nom de machine au lanceur */

@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 
 				 /* On recupere le numero de port de la socket */
 				 /* d'ecoute des processus distants */
-			 } while();
+			 } while(1);
 		 }
 		 
 		 /* envoi du nombre de processus aux processus dsm*/
