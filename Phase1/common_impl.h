@@ -11,6 +11,10 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <sys/time.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #include <unistd.h>
 
@@ -38,4 +42,6 @@ struct dsm_proc {
 };
 typedef struct dsm_proc dsm_proc_t;
 
+void do_connect(int sockfd, const struct sockaddr_in *addr, socklen_t addrlen);
+int get_addr_info(struct sockaddr_in* serv_info, char* host, char* port);
 int creer_socket(int type, int *port_num);
