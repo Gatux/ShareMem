@@ -15,6 +15,8 @@ int main(int argc, char **argv)
 	int DSM_NODE_ID = atoi(argv[1]);
 	struct sockaddr_in serv_info;
 
+	char buffer[1024];
+
 	printf("dsmwrap : DSM_NODE_ID = %d\n", DSM_NODE_ID);
 	printf("dsmwrap : SWAG_ENV = %s\n", argv[2]);
 	printf("dsmwrap : SWAG_PORT = %s\n", argv[3]);
@@ -27,11 +29,13 @@ int main(int argc, char **argv)
    get_addr_info(&serv_info, argv[2], argv[3]);
 	sock = creer_socket(SOCK_STREAM, &port);
 	do_connect(sock, &serv_info, sizeof(serv_info));
-
    
-   /* Envoi du nom de machine au lanceur */
+	/* Envoie de DSM_NODE_ID */
+	memset(buffer, 0, 1024);
+	sprintf("%d\n", DSM_NODE_ID);
+	write(sock, buffer, strlen(buffer));
 
-   /* Envoi du pid au lanceur */
+   /* Envoi du nom de machine au lanceur */
 
    /* Creation de la socket d'ecoute pour les */
    /* connexions avec les autres processus dsm */

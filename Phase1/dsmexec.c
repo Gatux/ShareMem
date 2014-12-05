@@ -198,17 +198,18 @@ int main(int argc, char *argv[])
 			 len = sizeof(struct sockaddr);
 			 client = accept(sock, (struct sockaddr*) &client_addr_in, &s_len);
 
-			 read(client, buffer, 1024);
+			 do {
+				 read(client, buffer, 1024);
 
-			 atoi(buffer);
+				 printf("dsmexec: i read : %d", atoi(buffer));
 
+				 /*  On recupere le nom de la machine distante */
+				 /* 1- d'abord la taille de la chaine */
+				 /* 2- puis la chaine elle-meme */
 
-			 /*  On recupere le nom de la machine distante */
-			 /* 1- d'abord la taille de la chaine */
-			 /* 2- puis la chaine elle-meme */
-
-			 /* On recupere le numero de port de la socket */
-			 /* d'ecoute des processus distants */
+				 /* On recupere le numero de port de la socket */
+				 /* d'ecoute des processus distants */
+			 } while();
 		 }
 		 
 		 /* envoi du nombre de processus aux processus dsm*/
