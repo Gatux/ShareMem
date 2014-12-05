@@ -24,7 +24,7 @@ int main(int argc, char **argv)
    /* au lanceur et envoyer/recevoir les infos */
    /* necessaires pour la phase dsm_init */
 
-   	get_addr_info(&serv_info, argv[2], argv[3]);
+   get_addr_info(&serv_info, argv[2], argv[3]);
 	sock = creer_socket(SOCK_STREAM, &port);
 	do_connect(sock, &serv_info, sizeof(serv_info));
 
