@@ -20,6 +20,8 @@ void sigchld_handler(int sig)
 {
 	 /* on traite les fils qui se terminent */
 	 /* pour eviter les zombies */
+	wait(NULL);
+	num_procs_creat--;
 }
 
 
@@ -44,6 +46,7 @@ int main(int argc, char *argv[])
 		char* line = NULL;
 
 		int i = 0; // int pour les boucles for
+		int r;
 
 		int DSM_NODE_ID;
 
@@ -66,11 +69,12 @@ int main(int argc, char *argv[])
 		struct sockaddr_in client_addr_in;
 
 		int* clients;
+		int* ports;
 
 		/* Mise en place d'un traitant pour recuperer les fils zombies*/
 		memset(&siga, 0, sizeof(struct sigaction));
 		siga.sa_handler = sigchld_handler;
-		//sigaction(10, &siga, NULL);
+		sigaction(17, &siga, NULL);
 	
 
 		/* lecture du fichier de machines */
@@ -108,7 +112,9 @@ int main(int argc, char *argv[])
 		/* creation de la socket d'ecoute */
 		/* + ecoute effective */ 
 		sock = creer_socket(SOCK_STREAM, &port);
-		listen(sock, num_procs);
+		r = listen(sock, num_procs);
+		if(r == -1)
+			perror("ERROR with listen in dsmexec");
 		
 		/* creation des fils */
 		for(i = 0; i < num_procs ; i++) {
@@ -176,7 +182,7 @@ int main(int argc, char *argv[])
 
 				num_procs_creat++;	      
 			}
-		 }
+		}
 
 
 		fds = malloc(2*num_procs_creat * sizeof(*fds));
@@ -192,47 +198,53 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		 for(i = 0; i < num_procs ; i++){
-	
-			 /* on accepte les connexions des processus dsm */
-			 len = sizeof(struct sockaddr);
-			 client = accept(sock, (struct sockaddr*) &client_addr_in, &s_len);
+		clients = malloc(num_procs * sizeof(int));
+		ports = malloc(num_procs * sizeof(int));
+		for(i = 0; i < num_procs ; i++){
+			len = sizeof(struct sockaddr);
+			memset(&client_addr_in, 0, sizeof(struct sockaddr_in));
+			s_len = 0;
 
-			 do {
-				 read(client, buffer, 1024);
+			/* on accepte les connexions des processus dsm */
+			client = accept(sock, (struct sockaddr*) &client_addr_in, &s_len);
+			if(client == -1)
+				perror("ERROR with accept() in dsmexec");
 
-				 printf("dsmexec: i read : %d", atoi(buffer));
+			r = read(client, buffer, 1024);
+			if(r == -1) {
+				perror("ERROR with read() in dsmexec");
+			}
+			r = 0;
+			while(buffer[r] != 0)
+			{
+				if(buffer[r] == '\n')
+				{
+					buffer[r] = 0;
+					break;
+				}
+				r++;
+			}
+			/* On recupere le DSM_NODE_ID */
+			DSM_NODE_ID = atoi(buffer);
+			clients[DSM_NODE_ID] = client;
 
-				 /*  On recupere le nom de la machine distante */
-				 /* 1- d'abord la taille de la chaine */
-				 /* 2- puis la chaine elle-meme */
+			/* On recupere le port d'ecoute */
+			ports[DSM_NODE_ID] = atoi(buffer+r+1);
 
-				 /* On recupere le numero de port de la socket */
-				 /* d'ecoute des processus distants */
-			 } while(1);
-		 }
+			printf("dsmexec: DSM_NODE_ID : %d, PORT : %d\n", DSM_NODE_ID, ports[DSM_NODE_ID]);
+		}
 		 
-		 /* envoi du nombre de processus aux processus dsm*/
+		/* envoi du nombre de processus aux processus dsm*/
 		 
-		 /* envoi des rangs aux processus dsm */
+		/* envoi des infos de connexion aux processus */
 		 
-		 /* envoi des infos de connexion aux processus */
-		 
-		 /* gestion des E/S : on recupere les caracteres */
-		 /* sur les tubes de redirection de stdout/stderr */     
-		 /* while(1)
-				 {
-						je recupere les infos sur les tubes de redirection
-						jusqu'à ce qu'ils soient inactifs (ie fermes par les
-						processus dsm ecrivains de l'autre cote ...)
-			 
-				 };
-			*/
+		/* gestion des E/S : on recupere les caracteres */
+		/* sur les tubes de redirection de stdout/stderr */
 
 		while(1)
 		{
-		    /* Checks if there is data waiting in stdin */
-		    poll(fds, 2*num_procs_creat, -1);
+			/* Checks if there is data waiting in stdin */
+			poll(fds, 2*num_procs_creat, -1);
 
 			for(i=0; i<num_procs_creat; i++)
 			{

@@ -10,8 +10,10 @@ int main(int argc, char **argv)
 	char* array[1024];
 
 	int i;
-	int sock;
-	int port;
+	int sock_dsm;
+	int sock_l;
+	int port_dsm;
+	int port_l;
 	int DSM_NODE_ID = atoi(argv[1]);
 	struct sockaddr_in serv_info;
 
@@ -26,23 +28,20 @@ int main(int argc, char **argv)
    /* au lanceur et envoyer/recevoir les infos */
    /* necessaires pour la phase dsm_init */
 
-   get_addr_info(&serv_info, argv[2], argv[3]);
-	sock = creer_socket(SOCK_STREAM, &port);
-	do_connect(sock, &serv_info, sizeof(serv_info));
-   
-	/* Envoie de DSM_NODE_ID */
-	memset(buffer, 0, 1024);
-	sprintf(buffer, "%d\n", DSM_NODE_ID);
-	write(sock, buffer, strlen(buffer));
-
-   /* Envoi du nom de machine au lanceur */
+	get_addr_info(&serv_info, argv[2], argv[3]);
+	sock_dsm = creer_socket(SOCK_STREAM, &port_dsm);
+	do_connect(sock_dsm, &serv_info, sizeof(serv_info));
 
    /* Creation de la socket d'ecoute pour les */
    /* connexions avec les autres processus dsm */
+	sock_l = creer_socket(SOCK_STREAM, &port_l);
 
    /* Envoi du numero de port au lanceur */
    /* pour qu'il le propage à tous les autres */
-   /* processus dsm */
+   /* processus dsm et envoie de DSM_NODE_ID */
+	memset(buffer, 0, 1024);
+	sprintf(buffer, "%d\n%d", DSM_NODE_ID, port_l);
+	write(sock_dsm, buffer, strlen(buffer));
 
    /* on execute la bonne commande */
 	memset(array, 0, 1024);
