@@ -6,18 +6,19 @@ int main(int argc, char **argv)
 	/* la liste des arguments qu'on va passer */
 	/* a la commande a executer vraiment */
    
-
 	char* array[1024];
+	char buffer[1024];
 
 	int i;
+
 	int sock_dsm;
 	int sock_l;
 	int port_dsm;
 	int port_l;
-	int DSM_NODE_ID = atoi(argv[1]);
-	struct sockaddr_in serv_info;
 
-	char buffer[1024];
+	int DSM_NODE_ID = atoi(argv[1]);
+
+	struct sockaddr_in serv_info;
 
 	printf("dsmwrap : DSM_NODE_ID = %d\n", DSM_NODE_ID);
 	printf("dsmwrap : SWAG_ENV = %s\n", argv[2]);
@@ -43,12 +44,17 @@ int main(int argc, char **argv)
 	sprintf(buffer, "%d\n%d", DSM_NODE_ID, port_l);
 	write(sock_dsm, buffer, strlen(buffer));
 
-   /* on execute la bonne commande */
+	/* on execute la bonne commande */
 	memset(array, 0, 1024);
+	memset(buffer, 0, 1024);
 
-	for(i = 4; i < argc; i++)
-		array[i-4] = argv[i];
+	array[0] = argv[4];
+	sprintf(buffer, "%d", sock_dsm);
+	array[1] = buffer;
+
+	for(i = 5; i < argc; i++)
+		array[i-3] = argv[i];
 
 	execvp(array[0], array);
-   return 0;
+	return 0;
 }

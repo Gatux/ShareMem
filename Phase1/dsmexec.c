@@ -200,6 +200,9 @@ int main(int argc, char *argv[])
 
 		clients = malloc(num_procs * sizeof(int));
 		ports = malloc(num_procs * sizeof(int));
+		memset(clients, -1, num_procs);
+		memset(ports, -1, num_procs);
+
 		for(i = 0; i < num_procs ; i++){
 			len = sizeof(struct sockaddr);
 			memset(&client_addr_in, 0, sizeof(struct sockaddr_in));
@@ -214,29 +217,39 @@ int main(int argc, char *argv[])
 			if(r == -1) {
 				perror("ERROR with read() in dsmexec");
 			}
+
 			r = 0;
-			while(buffer[r] != 0)
-			{
-				if(buffer[r] == '\n')
-				{
-					buffer[r] = 0;
-					break;
-				}
+			while(buffer[r] != '\n' && buffer[r] != '0' && r < 1024)
 				r++;
-			}
+
 			/* On recupere le DSM_NODE_ID */
 			DSM_NODE_ID = atoi(buffer);
-			clients[DSM_NODE_ID] = client;
 
-			/* On recupere le port d'ecoute */
-			ports[DSM_NODE_ID] = atoi(buffer+r+1);
+			if(DSM_NODE_ID >= 0 && DSM_NODE_ID < num_procs) {
+
+				clients[DSM_NODE_ID] = client;
+				/* On recupere le port d'ecoute */
+				ports[DSM_NODE_ID] = atoi(buffer+r+1);
+			}
 
 			printf("dsmexec: DSM_NODE_ID : %d, PORT : %d\n", DSM_NODE_ID, ports[DSM_NODE_ID]);
 		}
-		 
-		/* envoi du nombre de processus aux processus dsm*/
-		 
-		/* envoi des infos de connexion aux processus */
+
+
+		for(i = 0; i < num_procs ; i++) {
+			if(clients[i] != -1) {
+				memset(buffer, 0, 1024);
+
+				/* envoi du nombre de processus aux processus dsm et son ID*/
+				sprintf(buffer, "%d\n%d", i, num_procs);
+				r = write(clients[i], buffer, 1024);
+				if(r == -1)
+					perror("ERROR with read() in dsmexec");
+
+				/* envoi des infos de connexion aux processus */
+
+			}
+		}
 		 
 		/* gestion des E/S : on recupere les caracteres */
 		/* sur les tubes de redirection de stdout/stderr */

@@ -68,22 +68,37 @@ int get_addr_info(struct sockaddr_in* serv_info, char* host, char* port)
  		perror("ERROR setting socket options");
  	return fd;
  }
-//
-//
-//int creer_socket(int prop, int *port_num)
-//{
-//   int fd = 0;
-//
-//   /* fonction de creation et d'attachement */
-//   /* d'une nouvelle socket */
-//   /* renvoie le numero de descripteur */
-//   /* et modifie le parametre port_num */
-//
-//   return fd;
-//}
+
 
 /* Vous pouvez ecrire ici toutes les fonctions */
 /* qui pourraient etre utilisees par le lanceur */
 /* et le processus intermediaire. N'oubliez pas */
 /* de declarer le prototype de ces nouvelles */
 /* fonctions dans common_impl.h */
+
+ int change_buffer(char* buffer, int taille) {
+	 int i;
+	 int n = 1;
+	 if(buffer != NULL)
+		 for(i = 0; i < taille; i++)
+			 if(buffer[i] == '\n') {
+				 buffer[i] = 0;
+				 n++;
+			 }
+	 return n;
+ }
+
+void do_write(int fg, char* buffer, int size) {
+	 int r = size;
+	 int i;
+	 if(buffer != NULL) {
+		 do {
+			 i = write(fg, buffer+(size-r), r);
+			 if(i == -1) {
+				 perror("ERROR with write() in do_write");
+				 return;
+			 }
+			 r -= i;
+		 } while(r > 0);
+	 }
+ }
