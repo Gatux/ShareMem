@@ -102,3 +102,8 @@ void do_write(int fg, char* buffer, int size) {
 		 } while(r > 0);
 	 }
  }
+void do_read(int fd, char* buffer, int size) {
+	int r = read(fd, buffer, size);
+		if(r == -1)
+			perror("ERROR with read()");
+}

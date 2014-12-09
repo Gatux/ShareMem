@@ -74,6 +74,7 @@ int main(int argc, char *argv[])
 		/* Mise en place d'un traitant pour recuperer les fils zombies*/
 		memset(&siga, 0, sizeof(struct sigaction));
 		siga.sa_handler = sigchld_handler;
+		siga.sa_flags = SA_RESTART;
 		sigaction(17, &siga, NULL);
 	
 
@@ -204,7 +205,7 @@ int main(int argc, char *argv[])
 		memset(ports, -1, num_procs);
 
 		for(i = 0; i < num_procs ; i++){
-			len = sizeof(struct sockaddr);
+			//len = sizeof(struct sockaddr);
 			memset(&client_addr_in, 0, sizeof(struct sockaddr_in));
 			s_len = 0;
 
@@ -242,12 +243,16 @@ int main(int argc, char *argv[])
 
 				/* envoi du nombre de processus aux processus dsm et son ID*/
 				sprintf(buffer, "%d\n%d", i, num_procs);
-				r = write(clients[i], buffer, 1024);
-				if(r == -1)
-					perror("ERROR with read() in dsmexec");
+				do_write(clients[i], buffer, 1024);
 
 				/* envoi des infos de connexion aux processus */
+				for(r = 0; r < i; r++) {
+					memset(buffer, 0, 1024);
 
+					sprintf(buffer, "%d\n%s\n%d", r, array[r], ports[r]);
+
+					do_write(clients[r], buffer, 1024);
+				}
 			}
 		}
 		 

@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 
 	int i;
 
-	int sock_dsm;
+	int sock_dsmexec;
 	int sock_l;
 	int port_dsm;
 	int port_l;
@@ -30,8 +30,8 @@ int main(int argc, char **argv)
    /* necessaires pour la phase dsm_init */
 
 	get_addr_info(&serv_info, argv[2], argv[3]);
-	sock_dsm = creer_socket(SOCK_STREAM, &port_dsm);
-	do_connect(sock_dsm, &serv_info, sizeof(serv_info));
+	sock_dsmexec = creer_socket(SOCK_STREAM, &port_dsm);
+	do_connect(sock_dsmexec, &serv_info, sizeof(serv_info));
 
    /* Creation de la socket d'ecoute pour les */
    /* connexions avec les autres processus dsm */
@@ -42,18 +42,22 @@ int main(int argc, char **argv)
    /* processus dsm et envoie de DSM_NODE_ID */
 	memset(buffer, 0, 1024);
 	sprintf(buffer, "%d\n%d", DSM_NODE_ID, port_l);
-	write(sock_dsm, buffer, strlen(buffer));
+	do_write(sock_dsmexec, buffer, strlen(buffer));
 
 	/* on execute la bonne commande */
 	memset(array, 0, 1024);
 	memset(buffer, 0, 1024);
 
-	array[0] = argv[4];
-	sprintf(buffer, "%d", sock_dsm);
-	array[1] = buffer;
+	sprintf(buffer, "%d", sock_dsmexec);
+	setenv("SOCK_DSMEXEC", buffer, 1);
 
-	for(i = 5; i < argc; i++)
-		array[i-3] = argv[i];
+	memset(buffer, 0, 1024);
+
+	sprintf(buffer, "%d", sock_l);
+	setenv("SOCK_L", buffer, 1);
+
+	for(i = 4; i < argc; i++)
+			array[i-4] = argv[i];
 
 	execvp(array[0], array);
 	return 0;

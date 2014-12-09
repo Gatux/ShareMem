@@ -1,7 +1,8 @@
 #include "dsm.h"
 
 int DSM_NODE_NUM; /* nombre de processus dsm */
-int DSM_NODE_ID;  /* rang (= numero) du processus */ 
+int DSM_NODE_ID;  /* rang (= numero) du processus */
+int* fd_procs_dist;
 
 /* indique l'adresse de debut de la page de numero numpage */
 static char *num2address( int numpage )
@@ -63,6 +64,7 @@ static void dsm_free_page( int numpage )
    munmap(page_addr, PAGE_SIZE);
    return;
 }
+
 
 static void *dsm_comm_daemon( void *arg)
 {  
@@ -129,35 +131,104 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
 /* dans les programmes utilisateurs de la DSM                       */
 char *dsm_init(int argc, char **argv)
 {   
-   struct sigaction act;
+	struct sigaction act;
 
-   int index;
-   int sock = atoi(argv[1]);
-   int r;
+	int index;
+	int sock_dsmexec;
+	int sock_l;
+	int r;
+	int i;
+	int id;
+	int fd;
 
-   char buffer[1024];
+	struct sockaddr_in serv_info;
+	int port;
 
-   r = read(sock, buffer, 1024);
-   if(r == -1)
-	   perror("ERROR with read() in dsm_init");
+	socklen_t s_len;
+	struct sockaddr_in client_addr_in;
 
-   change_buffer(buffer, 1024);
+	char** machine_names;
+	int* ports;
 
-   /* reception de mon numero de processus dsm envoye */
-   /* par le lanceur de programmes (DSM_NODE_ID)*/
-   DSM_NODE_ID = atoi(buffer);
+	char buffer[1024];
 
-   /* reception du nombre de processus dsm envoye */
-   /* par le lanceur de programmes (DSM_NODE_NUM)*/
-   DSM_NODE_NUM = atoi(buffer+strlen(buffer)+1);
+	sock_dsmexec = atoi(getenv("SOCK_DSMEXEC"));
+	sock_l = atoi(getenv("SOCK_L"));
+
+	memset(buffer, 0, 1024);
+	r = read(sock_dsmexec, buffer, 1024);
+	if(r == -1)
+		perror("ERROR with read() in dsm_init");
+
+	change_buffer(buffer, 1024);
+
+	/* reception de mon numero de processus dsm envoye */
+	/* par le lanceur de programmes (DSM_NODE_ID)*/
+	DSM_NODE_ID = atoi(buffer);
+
+	/* reception du nombre de processus dsm envoye */
+	/* par le lanceur de programmes (DSM_NODE_NUM)*/
+	DSM_NODE_NUM = atoi(buffer+strlen(buffer)+1);
+
+	i = listen(sock_l, DSM_NODE_NUM);
+	if(i == -1)
+		perror("ERROR with listen in dsm_init()");
    
-   /* reception des informations de connexion des autres */
-   /* processus envoyees par le lanceur : */
-   /* nom de machine, numero de port, etc. */
+	fd_procs_dist = calloc(DSM_NODE_NUM, sizeof(int));
+	machine_names = calloc(DSM_NODE_NUM, sizeof(char*));
+	ports 		 = calloc(DSM_NODE_NUM, sizeof(int));
+
+	for(i = 0; i < DSM_NODE_NUM; i++) {
    
-   /* initialisation des connexions */ 
-   /* avec les autres processus : connect/accept */
-   
+		/* reception des informations de connexion des autres */
+		/* processus envoyees par le lanceur : */
+		/* nom de machine, numero de port, etc. */
+		memset(buffer, 0, 1024);
+		r = read(sock_dsmexec, buffer, 1024);
+		if(r == -1)
+			perror("ERROR with read() in dsm_init");
+
+		change_buffer(buffer, 1024);
+
+		// id
+		id = atoi(buffer);
+
+		if(id >= 0 && id < DSM_NODE_NUM) {
+			// nom de machine
+			machine_names[id] = calloc(strlen(buffer)+1, sizeof(char));
+			strcpy(machine_names[id], buffer+strlen(buffer)+1);
+
+			// port
+			ports[id] = atoi(buffer + strlen(buffer) +1 + strlen(buffer+strlen(buffer)+1) + 1);
+
+			/* initialisation des connexions */
+			/* avec les autres processus : connect/accept */
+
+			if(id < DSM_NODE_ID) {
+				get_addr_info(&serv_info, machine_names[id], buffer + strlen(buffer) +1 + strlen(buffer+strlen(buffer)+1) + 1);
+				fd_procs_dist[id] = creer_socket(SOCK_STREAM, &port);
+				do_connect(fd_procs_dist[id], &serv_info, sizeof(serv_info));
+				memset(buffer, 0, 1024);
+				sprintf(buffer, "%d", id);
+				do_write(fd_procs_dist[id], buffer, 1024);
+			}
+		}
+	}
+
+	for(i = DSM_NODE_ID +1; i < DSM_NODE_NUM; i++) {
+		memset(buffer, 0, 1024);
+		memset(&client_addr_in, 0, sizeof(struct sockaddr_in));
+		s_len = 0;
+
+		fd = accept(sock_l, (struct sockaddr*) &client_addr_in, &s_len);
+
+		do_read(fd, buffer, 1024);
+
+		id = atoi(buffer);
+		if(id > DSM_NODE_ID && id < DSM_NODE_NUM)
+			fd_procs_dist[id] = fd;
+	}
+
    /* Allocation des pages en tourniquet */
    for(index = 0; index < PAGE_NUMBER; index ++){	
      if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
@@ -181,6 +252,7 @@ char *dsm_init(int argc, char **argv)
 
 void dsm_finalize( void )
 {
+	free(fd_procs_dist);
    /* fermer proprement les connexions avec les autres processus */
 
    /* terminer correctement le thread de communication */
