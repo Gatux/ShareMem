@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 
 			/* creation du tube pour rediriger stderr */
 			pipe(fd_err);
-			
+
 			pid = fork();
 			if(pid == -1) {
 				ERROR_EXIT("fork");
@@ -138,9 +138,11 @@ int main(int argc, char *argv[])
 
 				/* redirection stderr */	      	      
 				dup2(fd_err[1], 2);
-				 
+
 				close(fd_out[0]);
-				close(fd_out[0]);
+				close(fd_out[1]);
+				close(fd_err[0]);
+				close(fd_err[1]);
 				
 				/* Creation du tableau d'arguments pour le ssh */
 				memset(buffer, 0, 1024);
@@ -154,6 +156,7 @@ int main(int argc, char *argv[])
 				}
 
 				memset(array, 0 , 1024);
+
 
 				array[0] = "ssh";
 				array[1] = buffer;
@@ -206,6 +209,8 @@ int main(int argc, char *argv[])
 
 		for(i = 0; i < num_procs ; i++){
 			//len = sizeof(struct sockaddr);
+			printf("allo? %d\n", i);
+			fflush(stdout);
 			memset(&client_addr_in, 0, sizeof(struct sockaddr_in));
 			s_len = 0;
 
@@ -238,20 +243,22 @@ int main(int argc, char *argv[])
 
 
 		for(i = 0; i < num_procs ; i++) {
+		  printf("dsmexec check i: %d\n", i);
 			if(clients[i] != -1) {
+			  printf("dsmexec check2 i: %d\n", i);  
 				memset(buffer, 0, 1024);
 
 				/* envoi du nombre de processus aux processus dsm et son ID*/
 				sprintf(buffer, "%d\n%d", i, num_procs);
 				do_write(clients[i], buffer, 1024);
-
+				printf("dsmexec check3 i: %d\n", i);
 				/* envoi des infos de connexion aux processus */
 				for(r = 0; r < i; r++) {
 					memset(buffer, 0, 1024);
-
+					printf("dsmexec: boucle d'envoie: r: %d,i: %d\n", r,i);   
 					sprintf(buffer, "%d\n%s\n%d", r, array[r], ports[r]);
 
-					do_write(clients[r], buffer, 1024);
+					do_write(clients[i], buffer, 1024);
 				}
 			}
 		}
@@ -263,14 +270,15 @@ int main(int argc, char *argv[])
 		{
 			/* Checks if there is data waiting in stdin */
 			poll(fds, 2*num_procs_creat, -1);
-
+//printf("num: %d\n", num_procs_creat);
+//fflush(stdout);
 			for(i=0; i<num_procs_creat; i++)
 			{
 			    if(fds[i].revents == POLLIN)
 				{
 			    	memset(buffer, 0, sizeof(char)*1024);
-					read(pipe_out[i], buffer, sizeof(char)*1024);
-					printf("[Proc %d : toto : stdout] %s", i, buffer);
+					r = read(pipe_out[i], buffer, sizeof(char)*1024);
+					printf("[Proc %d : %s : stdout] %s", i, array[i], buffer);
 					fflush(stdout);
 				}
 			}
@@ -280,8 +288,8 @@ int main(int argc, char *argv[])
 				if(fds[i].revents == POLLIN)
 				{
 					memset(buffer, 0, sizeof(char)*1024);
-					read(pipe_err[i-num_procs_creat], buffer, sizeof(char)*1024);
-					printf("[Proc %d : toto : stderr] %s", i-num_procs_creat, buffer);
+					r = read(pipe_err[i-num_procs], buffer, sizeof(char)*1024);
+					printf("[Proc %d : %s : stderr] %s", i-num_procs, array[i-num_procs], buffer);
 					fflush(stdout);
 				}
 			}

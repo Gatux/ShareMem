@@ -68,11 +68,17 @@ static void dsm_free_page( int numpage )
 
 static void *dsm_comm_daemon( void *arg)
 {  
-   while(1)
-     {
-	/* a modifier */
 	printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
-	sleep(2);
+	fflush(stdout);
+	while(1) {
+		// On attend une connexion
+		accept();
+
+		// On récupère le numero de la page
+		read();
+
+		// on envoie la page
+		do_write();
      }
    return NULL;
 }
@@ -91,7 +97,21 @@ static void dsm_handler( void )
 {  
    /* A modifier */
    printf("[%i] FAULTY  ACCESS !!! \n",DSM_NODE_ID);
-   abort();
+   fflush(stdout);
+   // MASK A FAIRE, C'EST DE LA MERDE, MERCI MAXIME
+
+   // 1: il faut trouver celui qui possède la page
+
+   // 2: on se connect
+   connect();
+
+   // 3: on lui demande la page
+   do_write();
+
+   // 4: on la récupère
+   do_read();
+
+   //abort();
 }
 
 /* traitant de signal adequat */
@@ -177,9 +197,9 @@ char *dsm_init(int argc, char **argv)
 	fd_procs_dist = calloc(DSM_NODE_NUM, sizeof(int));
 	machine_names = calloc(DSM_NODE_NUM, sizeof(char*));
 	ports 		 = calloc(DSM_NODE_NUM, sizeof(int));
+	
+	for(i = 0; i < DSM_NODE_ID; i++) {
 
-	for(i = 0; i < DSM_NODE_NUM; i++) {
-   
 		/* reception des informations de connexion des autres */
 		/* processus envoyees par le lanceur : */
 		/* nom de machine, numero de port, etc. */
@@ -207,32 +227,40 @@ char *dsm_init(int argc, char **argv)
 			if(id < DSM_NODE_ID) {
 				get_addr_info(&serv_info, machine_names[id], buffer + strlen(buffer) +1 + strlen(buffer+strlen(buffer)+1) + 1);
 				fd_procs_dist[id] = creer_socket(SOCK_STREAM, &port);
+				printf("[%d] do_connect to > %d <\n", DSM_NODE_ID, id); fflush(stdout);
 				do_connect(fd_procs_dist[id], &serv_info, sizeof(serv_info));
+				printf("[%d] do_connect to > %d < ___OK___\n", DSM_NODE_ID, id); fflush(stdout);
 				memset(buffer, 0, 1024);
 				sprintf(buffer, "%d", id);
 				do_write(fd_procs_dist[id], buffer, 1024);
+				//printf("do_write done dsm_id: %d, id: %d\n", DSM_NODE_ID, id);
+				fflush(stdout);
 			}
 		}
 	}
 
+//printf("pré accept: dsm_id: %d\n", DSM_NODE_ID); fflush(stdout);
 	for(i = DSM_NODE_ID +1; i < DSM_NODE_NUM; i++) {
 		memset(buffer, 0, 1024);
 		memset(&client_addr_in, 0, sizeof(struct sockaddr_in));
 		s_len = 0;
 
+		printf("[%d] accept number > %d <\n", DSM_NODE_ID, i);
+		fflush(stdout);
+
 		fd = accept(sock_l, (struct sockaddr*) &client_addr_in, &s_len);
-
+		printf("[%d] accept number > %d < __OK__ , now do_read\n", DSM_NODE_ID, i); fflush(stdout);
 		do_read(fd, buffer, 1024);
-
+		printf("[%d] do_read number > %d < __OK__\n", DSM_NODE_ID, i); fflush(stdout);
 		id = atoi(buffer);
 		if(id > DSM_NODE_ID && id < DSM_NODE_NUM)
 			fd_procs_dist[id] = fd;
 	}
-
+	printf("__OK__%d__OK__\n", DSM_NODE_ID); fflush(stdout);
    /* Allocation des pages en tourniquet */
    for(index = 0; index < PAGE_NUMBER; index ++){	
      if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
-       dsm_alloc_page(index);	     
+       dsm_alloc_page(index);
      dsm_change_info( index, WRITE, index % DSM_NODE_NUM);
    }
    

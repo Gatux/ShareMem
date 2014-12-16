@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include "../Phase1/common_impl.h"
+#include "common.h"
 
 
 /* fin des includes */

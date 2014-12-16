@@ -1,13 +1,16 @@
-#include "common_impl.h"
+#include "common.h"
 
 #define NB_TRY 5
 
 void do_connect(int sockfd, const struct sockaddr_in *addr, socklen_t addrlen) {
-	int i = 0;
+	int i = 1;
 	int r = -1;
 
-	while(r != 0 && i < 5) {
+	while(r != 0 && i){// < 5) {
 		r = connect(sockfd, (struct sockaddr*)addr, addrlen);
+		if(r == 0)
+			break;
+		printf("test de connect\n");
 		i++;
 	}
 	if(r != 0)
