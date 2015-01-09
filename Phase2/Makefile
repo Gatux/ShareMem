@@ -11,10 +11,12 @@ CFLAGS  =   -DREENTRANT
 CCFLAGS = $(CFLAGS)
 LIBS =  -lpthread
 
-EXECS = exemple
+EXECS = exemple exemple2
 
 default: $(EXECS)
 
+exemple2: exemple2.o dsm.o common.o
+	$(CLINKER) $(OPTFLAGS) -o exemple2 exemple2.o dsm.o common.o $(LIBS)
 
 exemple: exemple.o dsm.o common.o
 	$(CLINKER) $(OPTFLAGS) -o exemple exemple.o dsm.o common.o $(LIBS)

@@ -20,10 +20,10 @@ int main(int argc, char **argv)
 
 	struct sockaddr_in serv_info;
 
-	printf("dsmwrap : DSM_NODE_ID = %d\n", DSM_NODE_ID);
-	printf("dsmwrap : SWAG_ENV = %s\n", argv[2]);
-	printf("dsmwrap : SWAG_PORT = %s\n", argv[3]);
-	fflush(stdout);
+	//printf("dsmwrap : DSM_NODE_ID = %d\n", DSM_NODE_ID);
+	//printf("dsmwrap : SWAG_ENV = %s\n", argv[2]);
+	//printf("dsmwrap : SWAG_PORT = %s\n", argv[3]);
+	//fflush(stdout);
 
    /* creation d'une socket pour se connecter au */
    /* au lanceur et envoyer/recevoir les infos */

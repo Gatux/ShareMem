@@ -1,16 +1,13 @@
 #include "common.h"
 
-#define NB_TRY 5
-
 void do_connect(int sockfd, const struct sockaddr_in *addr, socklen_t addrlen) {
 	int i = 1;
 	int r = -1;
 
-	while(r != 0 && i){// < 5) {
+	while(r != 0 && i) {
 		r = connect(sockfd, (struct sockaddr*)addr, addrlen);
 		if(r == 0)
 			break;
-		printf("test de connect\n");
 		i++;
 	}
 	if(r != 0)
@@ -114,8 +111,9 @@ void do_write(int fg, char* buffer, int size) {
 		 } while(r > 0);
 	 }
  }
-void do_read(int fd, char* buffer, int size) {
+int do_read(int fd, char* buffer, int size) {
 	int r = read(fd, buffer, size);
 		if(r == -1)
 			perror("ERROR with read()");
+		return r;
 }
