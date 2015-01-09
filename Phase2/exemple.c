@@ -14,6 +14,7 @@ int main(int argc, char **argv)
   printf("[%i] Coucou, mon adresse de base est : %p\n", DSM_NODE_ID, pointer);
   fflush(stdout);
 
+  // Teste d'un segfault standard :
   //int* ptr = 0x1;
   //*ptr = 0;
 
@@ -32,8 +33,6 @@ int main(int argc, char **argv)
     printf("[%i] valeur de l'entier : %i\n", DSM_NODE_ID, value);
     fflush(stdout);
   }
-  value = 1;
-  while(++value < 100000000);
   dsm_finalize();
   return 0;
 }

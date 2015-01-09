@@ -79,6 +79,7 @@ static void dsm_free_page( int numpage )
 
 static int dsm_send_page(dsm_page_owner_t new_owner, int numpage)
 {
+	// Envoie de la page
 	do_write(fd_procs_dist[new_owner], num2address(numpage), PAGE_SIZE);
 	dsm_change_info(numpage, WRITE, new_owner);
 	dsm_free_page(numpage);
@@ -111,7 +112,7 @@ static int dsm_get_page(int numpage)
 		//printf("[%d] dsm_get_page3: do_write OK, buffer: %s\n",DSM_NODE_ID, buffer);
 		//fflush(stdout);
 
-		// 4: on la récupère
+		// on la récupère
 		dsm_change_info(numpage, WRITE, DSM_NODE_ID);
 		dsm_alloc_page(numpage);
 		memset(buffer, 0, 1024);
@@ -156,6 +157,7 @@ static void *dsm_comm_daemon( void *arg)
 
 	memset(buffer, 0, 1024);
 
+	// Préparation du tableau de structure pour le poll
 	for(i = 0; i < DSM_NODE_NUM; i++) {
 		if(i == DSM_NODE_ID) {
 			fds[i].fd = 0;
@@ -182,7 +184,7 @@ static void *dsm_comm_daemon( void *arg)
 
 				change_buffer(buffer, strlen(buffer));
 
-				if(strncmp("askPage", buffer, 7) == 0) { // demande d'une page
+				if(strncmp("askPage", buffer, 7) == 0) { // cas d'une demande d'une page
 					numpage = atoi(buffer+strlen(buffer)+1);
 					if(numpage >= 0 && numpage < PAGE_NUMBER) {
 
@@ -195,7 +197,7 @@ static void *dsm_comm_daemon( void *arg)
 						fflush(stdout);
 					}
 				}
-				else { // mise à jour du propriétaire d'une page
+				else { // cas d'une mise à jour du propriétaire d'une page
 					numpage = atoi(buffer);
 					owner = atoi(buffer+strlen(buffer)+1);
 					if(numpage >= 0 && numpage < PAGE_NUMBER && owner >= 0 && owner < DSM_NODE_NUM)
@@ -213,10 +215,8 @@ static void dsm_handler( void* addr )
 {  
 	int numpage;
 
-	/* A modifier */
 	printf("[%i] FAULTY  ACCESS !!! \n",DSM_NODE_ID);
 	fflush(stdout);
-	// MASK A FAIRE, C'EST DE LA MERDE, MERCI MAXIME
 
 	// On cherche le numero de la page lié à l'adresse
 	numpage = address2num(addr);
@@ -282,14 +282,17 @@ char *dsm_init(int argc, char **argv)
 
 	char buffer[1024];
 
+	// On récupère les numéro de fd des socket que dsmwrap a créé
 	sock_dsmexec = atoi(getenv("SOCK_DSMEXEC"));
 	sock_l = atoi(getenv("SOCK_L"));
 
+	// On lit la socket, dsmexec doit nous envoyer des choses
 	memset(buffer, 0, 1024);
 	r = read(sock_dsmexec, buffer, 1024);
 	if(r == -1)
 		perror("ERROR with read() in dsm_init");
 
+	// Les informations sont envoyée avec comme séparateur '\n', cette fonction les tranforme en '\0'
 	change_buffer(buffer, 1024);
 
 	/* reception de mon numero de processus dsm envoye */
@@ -330,11 +333,17 @@ char *dsm_init(int argc, char **argv)
 				get_addr_info(&serv_info, buffer+strlen(buffer)+1, buffer + strlen(buffer) +1 + strlen(buffer+strlen(buffer)+1) + 1);
 				fd_procs_dist[id] = creer_socket(SOCK_STREAM, &port);
 				//printf("[%d] do_connect to > %d <\n", DSM_NODE_ID, id); fflush(stdout);
+				
+				// On se connecte au processus distant
 				do_connect(fd_procs_dist[id], &serv_info, sizeof(serv_info));
+				
 				//printf("[%d] do_connect to > %d < ___OK___\n", DSM_NODE_ID, id); fflush(stdout);
 				memset(buffer, 0, 1024);
 				sprintf(buffer, "%d", DSM_NODE_ID);
+
+				// On lui envoie notre DSM_NODE_ID
 				do_write(fd_procs_dist[id], buffer, 1024);
+
 				//printf("do_write done dsm_id: %d, id: %d\n", DSM_NODE_ID, id);
 				fflush(stdout);
 			}
@@ -350,11 +359,16 @@ char *dsm_init(int argc, char **argv)
 		//printf("[%d] accept number > %d <\n", DSM_NODE_ID, i);
 		//fflush(stdout);
 
+		// On accept les connection des processus qui ont un id > au notre
 		fd = accept(sock_l, (struct sockaddr*) &client_addr_in, &s_len);
 		//printf("[%d] accept number > %d < __OK__ , FD = %d, now do_read\n", DSM_NODE_ID, i, fd); fflush(stdout);
+
+		// Celui ci nous donne son ID
 		do_read(fd, buffer, 1024);
 		//printf("[%d] do_read number > %d < __OK__ BUFFER: %s\n", DSM_NODE_ID, i, buffer); fflush(stdout);
+
 		id = atoi(buffer);
+		// On enregistre le fd
 		if(id > DSM_NODE_ID && id < DSM_NODE_NUM)
 			fd_procs_dist[id] = fd;
 	}
@@ -382,16 +396,20 @@ char *dsm_init(int argc, char **argv)
 
 void dsm_finalize( void )
 {
+	sleep(3); // Temporisation
 	int i;
+
+	/* terminer correctement le thread de communication */
+   	/* pour le moment, on peut faire : */
+   	pthread_cancel(comm_daemon);
+
 	/* fermer proprement les connexions avec les autres processus */
 	for(i = 0; i < DSM_NODE_NUM; i++) {
 		close(fd_procs_dist[i]);
 	}
 	free(fd_procs_dist);
 	
-   /* terminer correctement le thread de communication */
-   /* pour le moment, on peut faire : */
-   pthread_cancel(comm_daemon);
+   
    
   return;
 }

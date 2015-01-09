@@ -25,8 +25,12 @@ int main(int argc, char **argv)
     printf("[%i] Chaine contenue dans la page 0 : %s\n", DSM_NODE_ID, current);
     fflush(stdout);
   }
-  value = 1;
-  while(++value < 100000000);
+  printf("[%d] Fin du programme\n", DSM_NODE_ID);
+  fflush(stdout);
+
   dsm_finalize();
+
+  printf("[%d] Fin de dsm_finalize\n", DSM_NODE_ID);
+  fflush(stdout);
   return 0;
 }

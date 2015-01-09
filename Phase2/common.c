@@ -85,6 +85,7 @@ int get_addr_info(struct sockaddr_in* serv_info, char* host, char* port)
 /* de declarer le prototype de ces nouvelles */
 /* fonctions dans common_impl.h */
 
+// Change les '\n' en '\0' d'un buffer
  int change_buffer(char* buffer, int taille) {
 	 int i;
 	 int n = 1;
@@ -97,14 +98,15 @@ int get_addr_info(struct sockaddr_in* serv_info, char* host, char* port)
 	 return n;
  }
 
-void do_write(int fg, char* buffer, int size) {
+void do_write(int fd, char* buffer, int size) {
 	 int r = size;
 	 int i;
-	 if(buffer != NULL) {
+	 if(buffer != NULL && fd != 0) {
 		 do {
-			 i = write(fg, buffer+(size-r), r);
+			 i = write(fd, buffer+(size-r), r);
 			 if(i == -1) {
-				 perror("ERROR with write() in do_write");
+			 	fprintf(stderr, "ERROR with write() in do_write fd=%d :", fd);
+				 perror("");
 				 return;
 			 }
 			 r -= i;

@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 					}
 				}
 
-				memset(array, 0 , 1024);
+				memset(array, 0 , 1024*sizeof(char*));
 
 
 				array[0] = "ssh";
@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
 		{
 			/* Checks if there is data waiting in stdin */
 			poll(fds, 2*num_procs_creat+1, -1);
-//printf("num: %d\n", num_procs_creat);
+//printf("num: %d\n", num_procs);
 //fflush(stdout);
 			if(fds[2*num_procs_creat].revents == POLLIN)
 				break;
@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 						pipe_out[i] = 0;
 						fds[i].fd = 0;
 					}
-					else {
+					else if(fds[i].fd != 0 && fds[i].fd != pipe_exit[0]){
 						printf("[Proc %d : %s : stdout] %s", i, array[i], buffer);
 						fflush(stdout);
 					}
@@ -306,14 +306,14 @@ int main(int argc, char *argv[])
 				if(fds[i].revents == POLLIN)
 				{
 					memset(buffer, 0, sizeof(char)*1024);
-					r = read(pipe_err[i-num_procs], buffer, sizeof(char)*1024);
+					r = read(pipe_err[i-num_procs_creat], buffer, sizeof(char)*1024);
 					if(r == 0) {
 						close(fds[i].fd);
 						pipe_err[i] = 0;
 						fds[i].fd = 0;
 					}
-					else {
-						printf("[Proc %d : %s : stderr] %s", i-num_procs, array[i-num_procs], buffer);
+					else if(fds[i].fd != 0 && fds[i].fd != pipe_exit[0]){
+						printf("[Proc %d : %s : stderr] %s", i-num_procs_creat, array[i-num_procs_creat], buffer);
 						fflush(stdout);
 					}
 				}
@@ -326,8 +326,10 @@ int main(int argc, char *argv[])
 		free(pipe_out);
 		free(pipe_err);
 		free(fds);
-		for(i = 0; i < num_procs_creat; i++)
-			free(array[i]);
+		for(i = 0; i < num_procs_creat; i++) {
+			if(array[i] != NULL)
+				free(array[i]);
+		}
 	}   
 	 exit(EXIT_SUCCESS);  
 }

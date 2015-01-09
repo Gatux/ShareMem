@@ -10,9 +10,8 @@ int main(int argc, char *argv[])
    int i;
    char str[1024];
    char exec_path[1024];   
-   char *wd_ptr = NULL;
    
-   wd_ptr = getcwd(str,1024);
+   getcwd(str,1024);
    fprintf(stdout,"Working dir is %s\n",str);
    
    fprintf(stdout,"Number of args : %i\n", argc);
@@ -26,6 +25,6 @@ int main(int argc, char *argv[])
 
    fflush(stdout);
    fflush(stderr);
-while(1);   
+   sleep(1); // Temporisation...
    return 0;
 }
